@@ -1,0 +1,1 @@
+from random_bot2.player import Player
