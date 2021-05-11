@@ -4,6 +4,9 @@
 #  - Ed Hinrichsen     : XXXXXX
 
 import random
+import gametheory
+import copy
+import numpy as np
 
 # ------------ GAME CONSTANTS ------------ #
 TOKEN_TO_ATTACK = {"r": "s", "p": "r", "s": "p"}
@@ -236,4 +239,128 @@ def get_swing_locations(board_state, token):
                     continue
                 swing_locations.append(swing_tile)
     return list(set(swing_locations))
+
+
+# -------------------------------
+
+def update_board_non_destructive(player_action, opponent_action, board_state, player_type):
+
+    board_state = copy.deepcopy(board_state)
+
+    if player_action[0] == "THROW":
+        token_type = player_action[1] if player_type == "lower" else player_action[1].upper()
+        new_token = Token(token_type, player_action[2])
+
+        print(True, player_type, new_token.pos)
+        # player_tokens.append(new_token)
+        # update game state
+        board_state[player_action[2]].tokens.append(new_token)
+
+    else:
+        # get token object to move
+        tile_tokens = board_state[player_action[1]].tokens
+        token = list(filter(lambda t: t.type.isupper() == (player_type == "upper"), tile_tokens))[0]
+
+        # change token position
+        # token.update_position(player_action[2])
+
+        # update board
+        board_state[player_action[1]].tokens.remove(token)
+        board_state[player_action[2]].tokens.append(token)
+
+    if opponent_action[0] == "THROW":
+        token_type = opponent_action[1] if player_type != "lower" else opponent_action[1].upper()
+        new_token = Token(token_type, opponent_action[2])
+
+        print(False, player_type, new_token.pos)
+        # opponent_tokens.append(new_token)
+        # update game state
+        board_state[opponent_action[2]].tokens.append(new_token)
+
+    else:
+        # get token object to move
+        tile_tokens = board_state[opponent_action[1]].tokens
+        token = list(filter(lambda t: t.type.isupper() == (player_type != "upper"), tile_tokens))[0]
+
+        # change token position
+        # token.update_position(opponent_action[2])
+
+        # update board
+        board_state[opponent_action[1]].tokens.remove(token)
+        board_state[opponent_action[2]].tokens.append(token)
+    board_state = handle_collision(board_state, player_action[2])
+    board_state = handle_collision(board_state, opponent_action[2])
+
+    return board_state
+
+
+def hex_distance(a, b):
+    # form https://www.redblobgames.com/grids/hexagons/
+    return (abs(a[0] - b[0]) 
+          + abs(a[0] + a[1] - b[0] - b[1])
+          + abs(a[1] - b[1])) / 2
+
+
+def get_payoff (player_available_moves, opponent_available_moves, board_state, player_type):
+    # mat = [[0]*len(opponent_available_moves)]*len(player_available_moves)
+
+    mat = np.zeros((len(player_available_moves), len(opponent_available_moves)))
+    for p_move in range(0,len(player_available_moves)):
+        for o_move in range(0,len(opponent_available_moves)):
+            board = update_board_non_destructive(player_available_moves[p_move], opponent_available_moves[o_move], board_state, player_type)
+            mat[p_move][o_move] = score_move(board, player_type)
+
+            # update_board(player_action, opponent_action, player_tokens, opponent_tokens, board_state, player_type)
+    print(mat)
+    return gametheory.solve_game(mat)
+
+
+def score_move(board, player_type):
+
+    token_list = {'R': [], 'P': [], 'S': [], 'r': [], 'p': [], 's': []}
+
+    for pos, tile in board.items():
+        if len(tile.tokens) > 0:
+            for i in tile.tokens:
+                print(pos, i.type)
+                token_list[i.type].append(pos)
+
+    upper_score = 0
+    lower_score = 0
+
+    for i in ['R','P','S']:
+        for j in token_list[i]:
+            for k in token_list[TOKEN_TO_ATTACK[i.lower()]]:
+                print('upper---',1/hex_distance(j,k),hex_distance(j,k))
+                upper_score += 1/hex_distance(j,k)
+
+    for i in ['r','p','s']:
+        for j in token_list[i]:
+            for k in token_list[TOKEN_TO_ATTACK[i].upper()]:
+                print('lower---',1/hex_distance(j,k),hex_distance(j,k))
+                lower_score += 1/hex_distance(j,k)
+
+    print('upper :',upper_score)
+    print('lower :',lower_score)
+
+    score = upper_score - lower_score if player_type == 'upper' else lower_score - upper_score 
+    print('score :',score)
+    return score
+
+# RPS = [
+#         [ -100, -100],
+#         [ +10, 10],
+#         [ -100, -100],
+#         [ -100, -100],
+#     ]
+# print(gametheory.solve_game(RPS))
+# a = [[0]*2]*4
+# print(a)
+player_type = 'upper'
+
+board_state = init_board(BOARD_SIZE)
+player_available_moves = [('THROW', 'P', (4, -4)), ('THROW', 'P', (1, 1))]
+opponent_available_moves = [('THROW', 'r', (0, 0)), ('THROW', 's', (-4, 4))]
+payoff = get_payoff (player_available_moves, opponent_available_moves, board_state, player_type)
+print(payoff)
 
