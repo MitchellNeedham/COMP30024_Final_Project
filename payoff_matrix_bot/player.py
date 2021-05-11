@@ -319,17 +319,19 @@ def update_board_non_destructive(player_action, opponent_action, board_state, pl
         # update board
         board_state[opponent_action[1]].tokens.remove(token)
         board_state[opponent_action[2]].tokens.append(token)
-    board_state = handle_collision(board_state, player_action[2])
-    board_state = handle_collision(board_state, opponent_action[2])
+    # board_state = handle_self_collision(board_state, player_action[2])
+    # board_state = handle_self_collision(board_state, opponent_action[2])
 
     return board_state
 
-
 def hex_distance(a, b):
     # form https://www.redblobgames.com/grids/hexagons/
-    return (abs(a[0] - b[0])
-            + abs(a[0] + a[1] - b[0] - b[1])
-            + abs(a[1] - b[1])) / 2
+
+    d = (abs(a[0] - b[0])
+         + abs(a[0] + a[1] - b[0] - b[1])
+         + abs(a[1] - b[1])) / 2
+
+    return d if d else 0.1
 
 
 def get_payoff(player_available_moves, opponent_available_moves, board_state, player_type):
@@ -338,7 +340,7 @@ def get_payoff(player_available_moves, opponent_available_moves, board_state, pl
     axis1 = len(opponent_available_moves) if len(
         opponent_available_moves) else 1
     mat = np.zeros((axis0, axis1))
-    
+
     for p_move in range(0, len(player_available_moves)):
         for o_move in range(0, len(opponent_available_moves)):
             board = update_board_non_destructive(
@@ -346,10 +348,11 @@ def get_payoff(player_available_moves, opponent_available_moves, board_state, pl
             mat[p_move][o_move] = score_move(board, player_type)
 
     print(mat)
-    probably_distribution = gametheory.solve_game(mat)
+    probably_distribution = gametheory.solve_game(mat)[0]
     print(probably_distribution)
+    print(list(range(0, len(player_available_moves))))
     index = np.random.choice(
-        range(0, len(player_available_moves)), 1, probably_distribution)[0]
+        a=range(0, len(player_available_moves)), size=1, p=probably_distribution)[0]
 
     return player_available_moves[index]
 
@@ -370,14 +373,24 @@ def score_move(board, player_type):
     for i in ['R', 'P', 'S']:
         for j in token_list[i]:
             for k in token_list[TOKEN_TO_ATTACK[i.lower()]]:
-                # print('---upper', 1/hex_distance(j, k), hex_distance(j, k))
                 upper_score += 1/hex_distance(j, k)
+
+            # # Check collisions with own token
+            # for k in token_list[TOKEN_TO_ATTACK[i.lower()].upper()]:
+            #     dist = hex_distance(j, k)
+            #     if dist < 1:
+            #         upper_score -= 1/hex_distance(j, k)
 
     for i in ['r', 'p', 's']:
         for j in token_list[i]:
             for k in token_list[TOKEN_TO_ATTACK[i].upper()]:
-                # print('---lower', 1/hex_distance(j, k), hex_distance(j, k))
                 lower_score += 1/hex_distance(j, k)
+
+        # # Check collisions with own token
+        # for k in token_list[TOKEN_TO_ATTACK[i]]:
+        #         dist = hex_distance(j, k)
+        #         if dist < 1:
+        #             upper_score -= 1/hex_distance(j, k)
 
     print('upper :', upper_score)
     print('lower :', lower_score)
@@ -386,3 +399,4 @@ def score_move(board, player_type):
     print('score :', score)
 
     return score
+
