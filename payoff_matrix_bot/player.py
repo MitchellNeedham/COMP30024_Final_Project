@@ -304,7 +304,9 @@ def hex_distance(a, b):
 def get_payoff (player_available_moves, opponent_available_moves, board_state, player_type):
     # mat = [[0]*len(opponent_available_moves)]*len(player_available_moves)
 
-    mat = np.zeros((len(player_available_moves), len(opponent_available_moves)))
+    axis0 = len(player_available_moves) if len(player_available_moves) else 1
+    axis1 = len(opponent_available_moves) if len(opponent_available_moves) else 1
+    mat = np.zeros((axis0, axis1))
     for p_move in range(0,len(player_available_moves)):
         for o_move in range(0,len(opponent_available_moves)):
             board = update_board_non_destructive(player_available_moves[p_move], opponent_available_moves[o_move], board_state, player_type)
