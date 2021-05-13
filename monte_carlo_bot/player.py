@@ -8,6 +8,8 @@ import gametheory
 import copy
 import numpy as np
 
+from pprint import pprint
+
 # ------------ GAME CONSTANTS ------------ #
 TOKEN_TO_ATTACK = {"r": "s", "p": "r", "s": "p"}
 TOKEN_TYPES = ["r", "p", "s"]
@@ -350,11 +352,70 @@ def get_payoff(player_available_moves, opponent_available_moves, board_state, pl
     print(mat)
     probably_distribution = gametheory.solve_game(mat)[0]
     print(probably_distribution)
-    print(list(range(0, len(player_available_moves))))
-    index = np.random.choice(
-        a=range(0, len(player_available_moves)), size=1, p=probably_distribution)[0]
+    # print(list(range(0, len(player_available_moves))))
+    # index = np.random.choice(
+    #     a=range(0, len(player_available_moves)), size=1, p=probably_distribution)[0]
 
-    return player_available_moves[index]
+    return probably_distribution
+
+
+node_prototype  = {
+    'score':0,
+    'my_score':0,
+    'explored':0,
+    'children': [],
+    'parent': None
+}
+
+def mcts(player_available_moves, opponent_available_moves, board_state, player_type):
+
+    head = copy.deepcopy(node_prototype)
+
+    for i in range(3):
+        node = mcts_selection(head)
+        mcts_expansion_simulation(node, player_available_moves, opponent_available_moves, board_state, player_type)
+
+    pprint(head)
+
+
+    max_score = head['children'][0]['score']
+    best_node = 0
+
+    for i in range(len(head['children'])):
+        if  head['children'][i]['score'] > max_score:
+            max_score = head['children'][i]['score']
+            best_node = i
+    return best_node
+    
+
+def mcts_selection(node):
+    node['explored'] += 1
+    if len(node['children']) == 0:
+        return node
+    else:
+        return mcts_selection(node['children'][0])
+
+def mcts_expansion_simulation(node, player_available_moves, opponent_available_moves, board_state, player_type):
+    if len(node['children']) == 0:
+        payoff = [0.4, 0.6]
+        # payoff = get_payoff(player_available_moves, opponent_available_moves, board_state, player_type)
+        for i in payoff:
+            new_node = copy.deepcopy(node_prototype)
+            new_node['my_score'] = i
+            new_node['score'] = i
+            new_node['parent'] = node
+            node['children'].append(new_node)
+
+        mcts_update(node)
+
+def mcts_update(node):
+    score = [node['my_score']]
+    for child in node['children']:
+        score.append(child['score'])
+    node['score'] = np.average(score)
+    if node['parent'] != None:
+        mcts_update(node['parent'])
+
 
 
 def score_move(board, player_type):
@@ -400,3 +461,45 @@ def score_move(board, player_type):
 
     return score
 
+
+head = {
+        'score':30,
+        'my_score':30,
+        'children_score':[],
+        'explored':0,
+        'children': [
+        ],
+        'parent': None
+    }
+
+node = {
+        'score':10,
+        'my_score':10,
+        'children_score':[],
+        'explored':0,
+        'children': [
+            {
+                'score':5,
+                'my_score':5,
+                'explored':0,
+                'children': [],
+                'parent': None
+            },
+            {
+                'score':2,
+                'my_score':2,
+                'explored':0,
+                'children': [],
+                'parent': None
+            },
+        ],
+        'parent': head
+    }
+# head['children'].append(node)
+
+# print(head['score'])
+# mcts_update(node)
+# print(head['score'])
+
+
+print(mcts('player_available_moves', 'opponent_available_moves', 'board_state', 'player_type'))
