@@ -19,6 +19,7 @@ TOKEN_TYPES = ["r", "p", "s"]
 INIT_TOKEN_COUNT = 9
 BOARD_SIZE = 4
 UCB1_C = 2
+reward_penitential = 10
 
 
 class Player:
@@ -405,7 +406,7 @@ def hex_distance(a, b):
          + abs(a[0] + a[1] - b[0] - b[1])
          + abs(a[1] - b[1])) / 2
 
-    return d if d else 0.1
+    return d if d else (1/reward_penitential)
 
 
 def get_payoff(player_available_moves, opponent_available_moves, player_tokens, opponent_tokens, board_state, node, player_type):
@@ -423,7 +424,7 @@ def get_payoff(player_available_moves, opponent_available_moves, player_tokens, 
     opponent_remaining_tokens_mat = np.zeros((axis0, axis1)).tolist()
 
     
-    s = time.time()
+    # s = time.time()
     for p_move in range(0, len(player_available_moves)):
         for o_move in range(0, len(opponent_available_moves)):
             
@@ -496,9 +497,8 @@ node_prototype = {
     'explored': 0,
     'children': [],
     'parent': None,
-    'player_tokens': None,
-    'opponent_tokens': None,
-    'board_state': None,
+    'player_action': None,
+    'opponent_action': None,
     'player_remaining_tokens': None,
     'opponent_remaining_tokens': None
 }
@@ -520,8 +520,9 @@ def mcts(player_tokens, opponent_tokens, board_state, player_remaining_tokens, o
     head['opponent_remaining_tokens'] = opponent_remaining_tokens
 
 
-
+    start_time = time.time()
     for i in range(10):
+    # while time.time() - start_time < 0.7:
         
         # s = time.time()
         node = mcts_selection(head, player_tokens, opponent_tokens, board_state, player_type)
@@ -551,9 +552,8 @@ def mcts(player_tokens, opponent_tokens, board_state, player_remaining_tokens, o
 
     def remove_circular_refs(node):
         node.pop('parent')
-        node.pop('board_state')
-        node.pop('player_tokens')
-        node.pop('opponent_tokens')
+        node.pop('player_action')
+        node.pop('opponent_action')
         node.pop('player_remaining_tokens')
         node.pop('opponent_remaining_tokens')
         node['name'] = "score: {:.2f}, explored: {}".format(
@@ -607,9 +607,6 @@ def mcts_selection(node, player_tokens, opponent_tokens, board_state, player_typ
         return mcts_selection(node['children'][max_i],player_tokens, opponent_tokens, board_state, player_type)
 
 
-payoff = [0.9, 0.5, 0.1]
-
-
 def mcts_expansion_simulation(node, player_tokens, opponent_tokens, board_state, player_type):
     
     if len(node['children']) == 0:
@@ -659,7 +656,7 @@ def mcts_expansion_simulation(node, player_tokens, opponent_tokens, board_state,
 
         
        
-    return len(payoff)
+    return len(probably_distribution)
 
 
 def mcts_update(node):
@@ -700,13 +697,26 @@ def score_move(player_token, opponent_token, board, player_type):
     tta = TOKEN_TO_ATTACK[token_type.lower()].upper() if player_type == 'lower' else TOKEN_TO_ATTACK[token_type.lower()]
     for k in token_list[tta]:
         player_score += 1/hex_distance(token_pos, k)
+    for i in board[token_pos].tokens:
+        if token_type.lower() == TOKEN_TO_ATTACK[i.type.lower()]:
+            player_score -= reward_penitential
+        if player_type == 'upper' and TOKEN_TO_ATTACK[token_type.lower()].upper() == i.type:
+            player_score -= reward_penitential
+        elif player_type == 'lower' and TOKEN_TO_ATTACK[token_type] == i.type:
+            player_score -= reward_penitential
 
     token_type = opponent_token[0]
     token_pos = opponent_token[1]
     tta = TOKEN_TO_ATTACK[token_type.lower()].upper() if player_type == 'lower' else TOKEN_TO_ATTACK[token_type.lower()]
     for k in token_list[tta]:
         opponent_score += 1/hex_distance(token_pos, k)
-
+    for i in board[token_pos].tokens:
+        if token_type.lower() == TOKEN_TO_ATTACK[i.type.lower()]:
+            opponent_score -= reward_penitential
+        if player_type == 'upper' and TOKEN_TO_ATTACK[token_type.lower()].upper() == i.type:
+            opponent_score -= reward_penitential
+        elif player_type == 'lower' and TOKEN_TO_ATTACK[token_type] == i.type:
+            opponent_score -= reward_penitential
     # for i in ['R', 'P', 'S']:
 
     #      if len(token_list[i]) > 0:
