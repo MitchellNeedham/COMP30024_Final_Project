@@ -445,7 +445,7 @@ def mcts(player_tokens, opponent_tokens, board_state, player_remaining_tokens, o
     head['player_remaining_tokens'] = player_remaining_tokens
     head['opponent_remaining_tokens'] = opponent_remaining_tokens
 
-    for i in range(5):
+    for i in range(1):
         # s = time.time()
         node = mcts_selection(head)
         # print('mcts_selection: ', time.time() - s)
