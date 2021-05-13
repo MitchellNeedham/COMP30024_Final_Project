@@ -276,63 +276,109 @@ def get_swing_locations(board_state, token):
 
 # -------------------------------  board_state = copy.deepcopy(board_state)
 
-def update_board_non_destructive(player_action, opponent_action, player_tokens, opponent_tokens, board_state, player_type):
+def update_board_non_destructive(player_action, opponent_action, player_tokens, opponent_tokens, board_state, player_type, undo=False):
 
     
-    player_tokens = copy.deepcopy(player_tokens)
-    opponent_tokens = copy.deepcopy(opponent_tokens)
-    board_state = copy.deepcopy(board_state)
-     
+    # copy.deepcopy(player_tokens)
+    # copy.deepcopy(opponent_tokens)
+    # copy.deepcopy(board_state)
 
-    if player_action[0] == "THROW":
-        token_type = player_action[1] if player_type == "lower" else player_action[1].upper(
-        )
-        new_token = Token(token_type, player_action[2])
+    player_token = None
+    opponent_token = None
+    if player_action:
+        if undo:
+            player_action = list(player_action)
+            if player_action[0] == "THROW":
+                player_action[0] == "REMOVE"
+            else:
+                swap = player_action[1]
+                player_action[1] = player_action[2]
+                player_action[2] = swap
 
-        # print(True, player_type, new_token.pos)
-        player_tokens.append(new_token)
-        # update game state
-        board_state[player_action[2]].tokens.append(new_token)
 
-    else:
-        # get token object to move
-        tile_tokens = board_state[player_action[1]].tokens
-        token = list(filter(lambda t: t.type.isupper() ==
-                            (player_type == "upper"), tile_tokens))[0]
+        if player_action[0] == "THROW":
+            token_type = player_action[1] if player_type == "lower" else player_action[1].upper()
+            new_token = Token(token_type, player_action[2])
 
-        # change token position
-        token.update_position(player_action[2])
+            # print(True, player_type, new_token.pos)
+            player_tokens.append(new_token)
+            # update game state
+            board_state[player_action[2]].tokens.append(new_token)
 
-        # update board
-        board_state[player_action[1]].tokens.remove(token)
-        board_state[player_action[2]].tokens.append(token)
+            player_token = new_token
 
-    if opponent_action[0] == "THROW":
-        token_type = opponent_action[1] if player_type != "lower" else opponent_action[1].upper(
-        )
-        new_token = Token(token_type, opponent_action[2])
+        elif player_action[0] == "REMOVE":
+            tile_tokens = board_state[player_action[1]].tokens
+            token = list(filter(lambda t: t.type.isupper() ==
+                                (player_type == "upper"), tile_tokens))[0]
 
-        # print(False, player_type, new_token.pos)
-        opponent_tokens.append(new_token)
-        # update game state
-        board_state[opponent_action[2]].tokens.append(new_token)
+            player_tokens.remove(token)
+            board_state[player_action[1]].tokens.remove(token)
 
-    else:
-        # get token object to move
-        tile_tokens = board_state[opponent_action[1]].tokens
-        token = list(filter(lambda t: t.type.isupper() ==
-                            (player_type != "upper"), tile_tokens))[0]
+        else:
+            # get token object to move
+            tile_tokens = board_state[player_action[1]].tokens
+            token = list(filter(lambda t: t.type.isupper() ==
+                                (player_type == "upper"), tile_tokens))[0]
 
-        # change token position
-        token.update_position(opponent_action[2])
+            # change token position
+            token.update_position(player_action[2])
 
-        # update board
-        board_state[opponent_action[1]].tokens.remove(token)
-        board_state[opponent_action[2]].tokens.append(token)
-    board_state = handle_collision(board_state, player_action[2])
-    board_state = handle_collision(board_state, opponent_action[2])
+            # update board
+            board_state[player_action[1]].tokens.remove(token)
+            board_state[player_action[2]].tokens.append(token)
 
-    return board_state, player_tokens, opponent_tokens
+            player_token = token
+        player_token = (player_token.type,player_token.pos)
+
+    if opponent_action:
+        if undo:
+            opponent_action = list(opponent_action)
+            if opponent_action[0] == "THROW":
+                opponent_action[0] == "REMOVE"
+            else:
+                swap = opponent_action[1]
+                opponent_action[1] = opponent_action[2]
+                opponent_action[2] = swap
+
+        if opponent_action[0] == "THROW":
+            token_type = opponent_action[1] if player_type != "lower" else opponent_action[1].upper()
+            new_token = Token(token_type, opponent_action[2])
+
+            # print(False, player_type, new_token.pos)
+            opponent_tokens.append(new_token)
+            # update game state
+            board_state[opponent_action[2]].tokens.append(new_token)
+
+            opponent_token = new_token
+
+        elif opponent_action[0] == "REMOVE":
+            tile_tokens = board_state[opponent_action[1]].tokens
+            token = list(filter(lambda t: t.type.isupper() ==
+                                (player_type != "upper"), tile_tokens))[0]
+
+            opponent_tokens.remove(token)
+            board_state[opponent_action[1]].tokens.remove(token)
+
+        else:
+            # get token object to move
+            tile_tokens = board_state[opponent_action[1]].tokens
+            token = list(filter(lambda t: t.type.isupper() ==
+                                (player_type != "upper"), tile_tokens))[0]
+
+            # change token position
+            token.update_position(opponent_action[2])
+
+            # update board
+            board_state[opponent_action[1]].tokens.remove(token)
+            board_state[opponent_action[2]].tokens.append(token)
+
+            opponent_token = token
+        opponent_token = (opponent_token.type,opponent_token.pos)
+    # board_state = handle_collision(board_state, player_action[2])
+    # board_state = handle_collision(board_state, opponent_action[2])
+
+    return board_state, player_token, opponent_token
 
 
 def hex_distance(a, b):
@@ -345,7 +391,7 @@ def hex_distance(a, b):
     return d if d else 0.1
 
 
-def get_payoff(player_available_moves, opponent_available_moves, node, player_type):
+def get_payoff(player_available_moves, opponent_available_moves, player_tokens, opponent_tokens, board_state, node, player_type):
 
     
     axis0 = len(player_available_moves) if len(player_available_moves) else 1
@@ -353,9 +399,8 @@ def get_payoff(player_available_moves, opponent_available_moves, node, player_ty
         opponent_available_moves) else 1
     mat = np.zeros((axis0, axis1))
 
-    board_state_mat = np.zeros((axis0, axis1)).tolist()
-    player_tokens_mat = np.zeros((axis0, axis1)).tolist()
-    opponent_tokens_mat = np.zeros((axis0, axis1)).tolist()
+    player_actions_mat = np.zeros((axis0, axis1)).tolist()
+    opponent_action_mat = np.zeros((axis0, axis1)).tolist()
     player_remaining_tokens_mat = np.zeros((axis0, axis1)).tolist()
     opponent_remaining_tokens_mat = np.zeros((axis0, axis1)).tolist()
 
@@ -373,31 +418,35 @@ def get_payoff(player_available_moves, opponent_available_moves, node, player_ty
                 opponent_remaining_tokens_mat[p_move][o_move] -= 1
             
             
-            board_state_new, player_tokens_new, opponent_tokens_new = update_board_non_destructive(
-                player_available_moves[p_move], opponent_available_moves[o_move], node['player_tokens'], node['opponent_tokens'], node['board_state'], player_type)
+            board_state_new, player_move, opponent_move = update_board_non_destructive(
+                player_available_moves[p_move], opponent_available_moves[o_move], player_tokens, opponent_tokens, board_state, player_type)
             
             
-            mat[p_move][o_move] = score_move(board_state_new, player_type)
+            mat[p_move][o_move] = score_move(player_move, opponent_move, board_state_new, player_type)
             
-
-            board_state_mat[p_move][o_move] = board_state_new
-            player_tokens_mat[p_move][o_move] = player_tokens_new
-            opponent_tokens_mat[p_move][o_move] = opponent_tokens_new
-    print('update_board_non_destructive: ', time.time() - s)       
+           
+            # update_board_non_destructive(
+            #     player_available_moves[p_move], opponent_available_moves[o_move], node['player_tokens'], node['opponent_tokens'], node['board_state'], player_type, undo=True)
+            update_board_non_destructive(
+                player_available_moves[p_move], opponent_available_moves[o_move], player_tokens, opponent_tokens, board_state, player_type, undo=True)
+            
+    
+            player_actions_mat[p_move][o_move] = player_available_moves[p_move]
+            opponent_action_mat[p_move][o_move] = opponent_available_moves[o_move]
+    print('-------update_board_non_destructive: ', time.time() - s)
             
     
     # print(mat)
     print('--------------', mat.shape)
     # probably_distribution = [0.5]*axis0
-    s = time.time()
+    # s = time.time()
     probably_distribution = gametheory.solve_game(mat)[0]
-    print('probably_distribution: ', time.time() - s)  
+    # print('probably_distribution: ', time.time() - s)  
     
     # print(probably_distribution)
 
-    board_state_list = []
-    player_tokens_list = []
-    opponent_tokens_list = []
+    player_actions_list = []
+    opponent_actions_list = []
     player_remaining_tokens_list = []
     opponent_remaining_tokens_list = []
 
@@ -408,9 +457,8 @@ def get_payoff(player_available_moves, opponent_available_moves, node, player_ty
             if mat[p_move][o_move] > max_score:
                 max_score = mat[p_move][o_move]
                 max_i = o_move
-        board_state_list.append(board_state_mat[p_move][max_i])
-        player_tokens_list.append(player_tokens_mat[p_move][max_i])
-        opponent_tokens_list.append(opponent_tokens_mat[p_move][max_i])
+        player_actions_list.append(player_actions_mat[p_move][max_i])
+        opponent_actions_list.append(opponent_action_mat[p_move][max_i])
         player_remaining_tokens_list.append(player_remaining_tokens_mat[p_move][max_i])
         opponent_remaining_tokens_list.append(opponent_remaining_tokens_mat[p_move][max_i])
 
@@ -419,7 +467,7 @@ def get_payoff(player_available_moves, opponent_available_moves, node, player_ty
     # index = np.random.choice(
     #     a=range(0, len(player_available_moves)), size=1, p=probably_distribution)[0]
 
-    return probably_distribution, player_tokens_list, opponent_tokens_list, board_state_list, player_remaining_tokens_list, opponent_remaining_tokens_list
+    return probably_distribution, player_actions_list, opponent_actions_list, player_remaining_tokens_list, opponent_remaining_tokens_list
 
 
 node_prototype = {
@@ -439,18 +487,26 @@ node_prototype = {
 def mcts(player_tokens, opponent_tokens, board_state, player_remaining_tokens, opponent_remaining_tokens, player_type):
 
     head = copy.deepcopy(node_prototype)
-    head['player_tokens'] = player_tokens
-    head['opponent_tokens'] = opponent_tokens
-    head['board_state'] = board_state
+
+    player_tokens = copy.deepcopy(player_tokens)
+    opponent_tokens = copy.deepcopy(opponent_tokens)
+    board_state = copy.deepcopy(board_state)
+    # head['player_tokens'] = player_tokens
+    # head['opponent_tokens'] = opponent_tokens
+    # head['board_state'] = board_state
+    head['player_action'] = None
+    head['opponent_action'] = None
     head['player_remaining_tokens'] = player_remaining_tokens
     head['opponent_remaining_tokens'] = opponent_remaining_tokens
 
-    for i in range(5):
+
+
+    for i in range(1):
         # s = time.time()
-        node = mcts_selection(head)
+        node = mcts_selection(head, player_tokens, opponent_tokens, board_state, player_type)
         # print('mcts_selection: ', time.time() - s)
         # s = time.time()
-        nodes_added = mcts_expansion_simulation(node, player_type)
+        nodes_added = mcts_expansion_simulation(node, player_tokens, opponent_tokens, board_state, player_type)
         # print('mcts_expansion_simulation: ', time.time() - s)
 
         if nodes_added == 0:
@@ -492,9 +548,12 @@ def mcts(player_tokens, opponent_tokens, board_state, player_remaining_tokens, o
     return best_node
 
 
-def mcts_selection(node):
+def mcts_selection(node, player_tokens, opponent_tokens, board_state, player_type):
 
-    # UCB1 = V + C * sqrt(ln(N)/n)
+    player_action = node['player_action']
+    opponent_action = node['opponent_action']
+    update_board_non_destructive(player_action, opponent_action, player_tokens, opponent_tokens, board_state, player_type)
+
 
     UCB1 = []
 
@@ -520,41 +579,42 @@ def mcts_selection(node):
 
         # print(UCB1)
 
-        return mcts_selection(node['children'][max_i])
+        return mcts_selection(node['children'][max_i],player_tokens, opponent_tokens, board_state, player_type)
 
 
 payoff = [0.9, 0.5, 0.1]
 
 
-def mcts_expansion_simulation(node, player_type):
+def mcts_expansion_simulation(node, player_tokens, opponent_tokens, board_state, player_type):
     if len(node['children']) == 0:
         # if len(payoff):
         #     payoff.pop()
         
-        player_available_moves = get_available_moves(node['board_state'],
-                                                     node['player_tokens'],
-                                                     node['opponent_tokens'],
-                                                     node['player_remaining_tokens'],
-                                                     player_type)
-
+        # for i in range(100):
+        player_available_moves = get_available_moves(board_state,
+                                                    player_tokens,
+                                                    opponent_tokens,
+                                                    node['player_remaining_tokens'],
+                                                    player_type)
+        # random.choice(player_available_moves)
         opponent_type = 'lower' if player_type == 'upper' else 'upper'
-        opponent_available_moves = get_available_moves(node['board_state'],
-                                                       node['opponent_tokens'],
-                                                       node['player_tokens'],
-                                                       node['opponent_remaining_tokens'],
-                                                       opponent_type)
-        
-        probably_distribution, player_tokens_list, opponent_tokens_list, board_state_list, player_remaining_tokens_new, opponent_remaining_tokens_new = get_payoff(player_available_moves,
-                                                                                                                                                                   opponent_available_moves, node, player_type)
-        
+        opponent_available_moves = get_available_moves(board_state,
+                                                    opponent_tokens,
+                                                    player_tokens,
+                                                    node['opponent_remaining_tokens'],
+                                                    opponent_type)
+        # random.choice(opponent_available_moves)
+
+        probably_distribution, player_actions_list, opponent_actions_list, player_remaining_tokens_list, opponent_remaining_tokens_list = get_payoff(player_available_moves,
+                                                                                                                                                                    opponent_available_moves, player_tokens, opponent_tokens, board_state, node, player_type)
+            
         for i in range(0,len(probably_distribution)):
             new_node = copy.deepcopy(node_prototype)
 
-            new_node['player_tokens'] = player_tokens_list[i]
-            new_node['opponent_tokens'] = opponent_tokens_list[i]
-            new_node['board_state'] = board_state_list[i]
-            new_node['player_remaining_tokens'] = player_remaining_tokens_new[i]
-            new_node['opponent_remaining_tokens'] = opponent_remaining_tokens_new[i]
+            new_node['player_action'] = player_actions_list[i]
+            new_node['opponent_action'] = opponent_actions_list[i]
+            new_node['player_remaining_tokens'] = player_remaining_tokens_list[i]
+            new_node['opponent_remaining_tokens'] = opponent_remaining_tokens_list[i]
 
             new_node['my_score'] = probably_distribution[i]
             new_node['score'] = probably_distribution[i]
@@ -562,11 +622,11 @@ def mcts_expansion_simulation(node, player_type):
             new_node['parent'] = node
             node['children'].append(new_node)
 
-        node['board_state'] = None
-        node['player_available_moves'] = None
-        node['opponent_available_moves'] = None
-        node['player_remaining_tokens'] = None
-        node['opponent_remaining_tokens'] = None
+        # node['board_state'] = None
+        # node['player_available_moves'] = None
+        # node['opponent_available_moves'] = None
+        # node['player_remaining_tokens'] = None
+        # node['opponent_remaining_tokens'] = None
 
         mcts_update(node)
        
@@ -582,7 +642,9 @@ def mcts_update(node):
         mcts_update(node['parent'])
 
 
-def score_move(board, player_type):
+def score_move(player_token, opponent_token, board, player_type):
+
+
 
     token_list = {'R': [], 'P': [], 'S': [], 'r': [], 'p': [], 's': []}
 
@@ -592,38 +654,69 @@ def score_move(board, player_type):
                 # print(pos, i.type)
                 token_list[i.type].append(pos)
 
-    upper_score = 0
-    lower_score = 0
+    player_score = 0
+    opponent_score = 0
+    
 
-    for i in ['R', 'P', 'S']:
-        for j in token_list[i]:
-            for k in token_list[TOKEN_TO_ATTACK[i.lower()]]:
-                upper_score += 1/hex_distance(j, k)
+    # t = time.time()
+    # # for i in ['R', 'P', 'S']:
+    # #     for j in token_list[i]:
+    # #         for k in token_list[TOKEN_TO_ATTACK[i.lower()]]:
+    # #             upper_score += 1/hex_distance(j, k)
+
+    # for i in ['R', 'P', 'S']:
+    
+    token_type = player_token[0]
+    token_pos = player_token[1]
+    tta = TOKEN_TO_ATTACK[token_type.lower()].upper() if player_type == 'lower' else TOKEN_TO_ATTACK[token_type.lower()]
+    for k in token_list[tta]:
+        player_score += 1/hex_distance(token_pos, k)
+
+    token_type = opponent_token[0]
+    token_pos = opponent_token[1]
+    tta = TOKEN_TO_ATTACK[token_type.lower()].upper() if player_type == 'lower' else TOKEN_TO_ATTACK[token_type.lower()]
+    for k in token_list[tta]:
+        opponent_score += 1/hex_distance(token_pos, k)
+
+    # for i in ['R', 'P', 'S']:
+
+    #      if len(token_list[i]) > 0:
+    #           for k in token_list[TOKEN_TO_ATTACK[i.lower()].upper()]:
+    #             dist = hex_distance(token_list[i], k)
+    #             if dist < 1:
+    #                 upper_score += 1/dist
+
+    # )
 
             # # Check collisions with own token
             # for k in token_list[TOKEN_TO_ATTACK[i.lower()].upper()]:
             #     dist = hex_distance(j, k)
             #     if dist < 1:
             #         upper_score -= 1/hex_distance(j, k)
-
-    for i in ['r', 'p', 's']:
-        for j in token_list[i]:
-            for k in token_list[TOKEN_TO_ATTACK[i].upper()]:
-                lower_score += 1/hex_distance(j, k)
-
-        # # Check collisions with own token
-        # for k in token_list[TOKEN_TO_ATTACK[i]]:
-        #         dist = hex_distance(j, k)
-        #         if dist < 1:
-        #             upper_score -= 1/hex_distance(j, k)
-
-    # print('upper :', upper_score)
-    # print('lower :', lower_score)
-
-    score = upper_score - lower_score if player_type == 'upper' else lower_score - upper_score
+    
+    
+    # for i in ['r', 'p', 's']:
+    #     for j in token_list[i]:
+    #         if len(token_list[TOKEN_TO_ATTACK[i].upper()]) > 0:
+    #             k = token_list[TOKEN_TO_ATTACK[i].upper()][0]
+    #             upper_score += 1/hex_distance(j, k)
+    #         # for k in token_list[TOKEN_TO_ATTACK[i].upper()]:
+    #         #     lower_score += 1/hex_distance(j, k)
+    
+    #     # # Check collisions with own token
+    #     # for k in token_list[TOKEN_TO_ATTACK[i]]:
+    #     #         dist = hex_distance(j, k)
+    #     #         if dist < 1:
+    #     #             upper_score -= 1/hex_distance(j, k)
+    # # print('score test: ',time.time()-t)
+    # # print('upper :', upper_score)
+    # # print('lower :', lower_score)
+    
+    # score = upper_score - lower_score if player_type == 'upper' else lower_score - upper_score
     # print('score :', score)
+    
 
-    return score
+    return player_score - opponent_score
 
 
 head = {
