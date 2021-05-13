@@ -376,14 +376,16 @@ def mcts(player_available_moves, opponent_available_moves, board_state, player_t
 
     head = copy.deepcopy(node_prototype)
 
-    for i in range(10):
+    for i in range(100):
         node = mcts_selection(head)
-        mcts_expansion_simulation(node, player_available_moves, opponent_available_moves, board_state, player_type)
+        nodes_added = mcts_expansion_simulation(node, player_available_moves, opponent_available_moves, board_state, player_type)
+
+        if nodes_added == 0:
+            break
 
     pprint(head)
 
-
-    max_score = head['children'][0]['score']
+    max_score = 0
     best_node = 0
 
     for i in range(len(head['children'])):
@@ -442,9 +444,11 @@ def mcts_selection(node):
 
         return mcts_selection(node['children'][max_i])
 
+payoff = [0.9,0.5,0.1]
 def mcts_expansion_simulation(node, player_available_moves, opponent_available_moves, board_state, player_type):
     if len(node['children']) == 0:
-        payoff = [0.4, 0.6]
+        # if len(payoff):
+        #     payoff.pop()
         # payoff = get_payoff(player_available_moves, opponent_available_moves, board_state, player_type)
         for i in payoff:
             new_node = copy.deepcopy(node_prototype)
@@ -455,6 +459,7 @@ def mcts_expansion_simulation(node, player_available_moves, opponent_available_m
             node['children'].append(new_node)
 
         mcts_update(node)
+    return len(payoff)
 
 def mcts_update(node):
     score = [node['my_score']]
