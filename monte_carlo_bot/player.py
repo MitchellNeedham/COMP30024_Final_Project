@@ -7,6 +7,9 @@ import random
 import gametheory
 import copy
 import numpy as np
+import json 
+# import math
+
 
 from pprint import pprint
 
@@ -15,6 +18,7 @@ TOKEN_TO_ATTACK = {"r": "s", "p": "r", "s": "p"}
 TOKEN_TYPES = ["r", "p", "s"]
 INIT_TOKEN_COUNT = 9
 BOARD_SIZE = 4
+UCB1_C = 2
 
 
 class Player:
@@ -367,11 +371,12 @@ node_prototype  = {
     'parent': None
 }
 
+
 def mcts(player_available_moves, opponent_available_moves, board_state, player_type):
 
     head = copy.deepcopy(node_prototype)
 
-    for i in range(3):
+    for i in range(10):
         node = mcts_selection(head)
         mcts_expansion_simulation(node, player_available_moves, opponent_available_moves, board_state, player_type)
 
@@ -385,15 +390,57 @@ def mcts(player_available_moves, opponent_available_moves, board_state, player_t
         if  head['children'][i]['score'] > max_score:
             max_score = head['children'][i]['score']
             best_node = i
+
+
+    # for testing only remove in prod ------
+    def remove_circular_refs(node):
+        node.pop('parent')
+        node['name'] = "score: {:.2f}, explored: {}".format(node['score'],node['explored'])
+        for i in node['children']:
+            remove_circular_refs(i)
+
+    remove_circular_refs(head)
+    jsonString = json.dumps(head)
+    print(jsonString) 
+
+    jsonFile = open("data.json", "w")
+    jsonFile.write(jsonString)
+
+    # ------------------------------------
+
+
     return best_node
     
 
 def mcts_selection(node):
+
+    # UCB1 = V + C * sqrt(ln(N)/n)
+
+    UCB1 = []
+
     node['explored'] += 1
     if len(node['children']) == 0:
         return node
     else:
-        return mcts_selection(node['children'][0])
+        for i in node['children']:
+           UCB1.append(
+               i['score'] + UCB1_C * np.sqrt(
+                   np.log(node['explored'])/i['explored']
+               )
+           ) 
+        
+        max = UCB1[0]
+        max_i = 0
+        for i in range(len(UCB1)):
+            if UCB1[i] > max:
+                max = UCB1[i]
+                max_i = i
+        
+        print(max_i)
+
+        print(UCB1)
+
+        return mcts_selection(node['children'][max_i])
 
 def mcts_expansion_simulation(node, player_available_moves, opponent_available_moves, board_state, player_type):
     if len(node['children']) == 0:
@@ -403,6 +450,7 @@ def mcts_expansion_simulation(node, player_available_moves, opponent_available_m
             new_node = copy.deepcopy(node_prototype)
             new_node['my_score'] = i
             new_node['score'] = i
+            new_node['explored'] = 1
             new_node['parent'] = node
             node['children'].append(new_node)
 
