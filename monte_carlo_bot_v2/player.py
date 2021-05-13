@@ -542,7 +542,7 @@ def mcts(player_tokens, opponent_tokens, board_state, player_remaining_tokens, o
 
     for i in range(len(head['children'])):
         
-        val = head['children'][i]['score'] * head['children'][i]['explored'] * 10
+        val = head['children'][i]['score']
         print(i,head['children'][i]['score'], head['children'][i]['explored'], val)
         if val > max_score:
             max_score = val
@@ -661,8 +661,10 @@ def mcts_expansion_simulation(node, player_tokens, opponent_tokens, board_state,
 
 def mcts_update(node):
     score = [node['my_score']]
+    find_max = []
     for child in node['children']:
-        score.append(child['score'])
+        find_max.append(child['score'])
+    score.append(max(find_max))
     node['score'] = np.average(score)
     if node['parent'] != None:
         mcts_update(node['parent'])
@@ -697,6 +699,7 @@ def score_move(player_token, opponent_token, board, player_type):
     tta = TOKEN_TO_ATTACK[token_type.lower()].upper() if player_type == 'lower' else TOKEN_TO_ATTACK[token_type.lower()]
     for k in token_list[tta]:
         player_score += 1/hex_distance(token_pos, k)
+        
     for i in board[token_pos].tokens:
         if token_type.lower() == TOKEN_TO_ATTACK[i.type.lower()]:
             player_score -= reward_penitential
