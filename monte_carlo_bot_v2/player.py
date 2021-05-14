@@ -189,65 +189,60 @@ def update_board(player_action, opponent_action, player_tokens, opponent_tokens,
         # update board
         board_state[opponent_action[1]].tokens.remove(token)
         board_state[opponent_action[2]].tokens.append(token)
-    board_state = handle_collision(board_state, player_action[2])
-    board_state = handle_collision(board_state, opponent_action[2])
+    board_state, player_tokens, opponent_tokens = handle_collision(board_state, player_action[2], player_tokens,
+                                                                   opponent_tokens, player_type)
+    board_state, player_tokens, opponent_tokens = handle_collision(board_state, opponent_action[2], player_tokens,
+                                                                   opponent_tokens, player_type)
 
     return board_state, player_tokens, opponent_tokens
 
-
-def handle_collision(board_state, pos):
+def handle_collision(board_state, pos, player_tokens, opponent_tokens, player_type):
     tokens = board_state[pos].tokens
     if len(tokens) < 2:
-        return board_state
+        return board_state, player_tokens, opponent_tokens
 
     to_destroy = []
 
     for attacker_token in tokens.copy():
         for attacked_token in tokens.copy():
-            can_attack = (
-                    TOKEN_TO_ATTACK[attacker_token.type.lower()] == attacked_token.type.lower())
-            if can_attack and attacked_token not in to_destroy:
+            can_attack = (TOKEN_TO_ATTACK[attacker_token.type.lower()] == attacked_token.type.lower())
+            if can_attack:
                 to_destroy.append(attacked_token)
-                break
 
-    for token in to_destroy:
+    for token in set(to_destroy):
+        if token.type.isupper() == (player_type == "upper"):
+            player_tokens.remove(token)
+        else:
+            opponent_tokens.remove(token)
+
         board_state[pos].tokens.remove(token)
 
-    return board_state
-
+    return board_state, player_tokens, opponent_tokens
 
 def valid_path(r, q):
     if r > BOARD_SIZE or q > BOARD_SIZE or r < -BOARD_SIZE or q < -BOARD_SIZE or abs(r + q) > BOARD_SIZE:
         return None
     return r, q
 
-
 def get_available_moves(board_state, player_tokens, opponent_tokens, remaining_tokens, player_type):
-    # print(remaining_tokens)
     available_moves = []
     collision_locations = map(lambda x: x.pos, opponent_tokens)
-    # print(list(map(lambda x: x.pos, player_tokens)),
-    #       player_type, hex(id(player_tokens)))
+    print(list(map(lambda x: x.pos, player_tokens)), player_type, hex(id(player_tokens)))
 
     for token in player_tokens:
         neighbour_tiles = filter(None, board_state[token.pos].neighbours)
         swing_locations = filter(None, get_swing_locations(board_state, token))
 
-        safe_neighbours = list(
-            set(neighbour_tiles).difference(collision_locations))
-        safe_swing_locations = list(set(swing_locations).difference(
-            neighbour_tiles).difference(collision_locations))
+        safe_neighbours = list(set(neighbour_tiles).difference(collision_locations))
+        safe_swing_locations = list(
+            set(swing_locations).difference(neighbour_tiles).difference(collision_locations))
 
-        available_moves += map(lambda x: ("SLIDE",
-                                          token.pos, x), safe_neighbours)
-        # available_moves += map(lambda x: ("SWING",
-        #                                   token.pos, x), safe_swing_locations)
+        available_moves += map(lambda x: ("SLIDE", token.pos, x), safe_neighbours)
+        available_moves += map(lambda x: ("SWING", token.pos, x), safe_swing_locations)
 
-    available_moves += get_available_throws(board_state,
-                                            remaining_tokens, player_type)
+    available_moves += get_available_throws(board_state, remaining_tokens, player_type)
 
     return available_moves
-
 
 def get_available_throws(board_state, remaining_tokens, player_type):
     if remaining_tokens <= 0:
@@ -268,22 +263,22 @@ def get_available_throws(board_state, remaining_tokens, player_type):
                 available_throws.append(("THROW", token_type, (r, q)))
     return available_throws
 
-
 def get_swing_locations(board_state, token):
     swing_locations = []
-    neighbours = filter(None, board_state[token.pos].neighbours)
-    for tile in neighbours:
+    neighbours = board_state[token.pos].neighbours
+    for tile in filter(None, neighbours):
         for neighbour_token in board_state[tile].tokens:
-            if neighbour_token.type.isupper() and token.type.isupper():
+            if neighbour_token.type.isupper() != token.type.isupper():
                 continue
-            if neighbour_token.type.islower() and token.type.islower():
-                continue
-            for swing_tile in board_state[neighbour_token.pos].neighbours:
+            swingable_tiles = list(
+                set(board_state[neighbour_token.pos].neighbours).difference(
+                    board_state[token.pos].neighbours + [token.pos]))
+            print(token.pos, swingable_tiles, board_state[token.pos].neighbours)
+            for swing_tile in swingable_tiles:
                 if swing_tile in neighbours or swing_tile == token.pos:
                     continue
                 swing_locations.append(swing_tile)
     return list(set(swing_locations))
-
 
 # -------------------------------  board_state = copy.deepcopy(board_state)
 
@@ -679,7 +674,7 @@ def mcts_update(node):
         find_max.append(child['score'])
     score.append(max(find_max))
     node['score'] = np.average(score)
-    if node['parent'] != None:
+    if node['parent'] is not None:
         mcts_update(node['parent'])
 
 
@@ -892,6 +887,4 @@ print(index)
 print(player_available_moves[index])
 print(time.time() - s)
 
-
 # --------------------------
-
