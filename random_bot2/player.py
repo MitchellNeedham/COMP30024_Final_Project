@@ -168,9 +168,8 @@ def handle_collision(board_state, pos, player_tokens, opponent_tokens, player_ty
     for attacker_token in tokens.copy():
         for attacked_token in tokens.copy():
             can_attack = (TOKEN_TO_ATTACK[attacker_token.type.lower()] == attacked_token.type.lower())
-            if can_attack and attacked_token not in to_destroy:
+            if can_attack:
                 to_destroy.append(attacked_token)
-                break
 
     for token in to_destroy:
         if token.type.isupper() == (player_type == "upper"):
