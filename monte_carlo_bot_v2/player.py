@@ -196,7 +196,6 @@ def update_board(player_action, opponent_action, player_tokens, opponent_tokens,
 
     return board_state, player_tokens, opponent_tokens
 
-
 def handle_collision(board_state, pos, player_tokens, opponent_tokens, player_type):
     tokens = board_state[pos].tokens
     if len(tokens) < 2:
@@ -210,7 +209,7 @@ def handle_collision(board_state, pos, player_tokens, opponent_tokens, player_ty
             if can_attack:
                 to_destroy.append(attacked_token)
 
-    for token in to_destroy:
+    for token in set(to_destroy):
         if token.type.isupper() == (player_type == "upper"):
             player_tokens.remove(token)
         else:
@@ -220,12 +219,10 @@ def handle_collision(board_state, pos, player_tokens, opponent_tokens, player_ty
 
     return board_state, player_tokens, opponent_tokens
 
-
 def valid_path(r, q):
     if r > BOARD_SIZE or q > BOARD_SIZE or r < -BOARD_SIZE or q < -BOARD_SIZE or abs(r + q) > BOARD_SIZE:
         return None
     return r, q
-
 
 def get_available_moves(board_state, player_tokens, opponent_tokens, remaining_tokens, player_type):
     available_moves = []
@@ -247,7 +244,6 @@ def get_available_moves(board_state, player_tokens, opponent_tokens, remaining_t
 
     return available_moves
 
-
 def get_available_throws(board_state, remaining_tokens, player_type):
     if remaining_tokens <= 0:
         return []
@@ -267,7 +263,6 @@ def get_available_throws(board_state, remaining_tokens, player_type):
                 available_throws.append(("THROW", token_type, (r, q)))
     return available_throws
 
-
 def get_swing_locations(board_state, token):
     swing_locations = []
     neighbours = board_state[token.pos].neighbours
@@ -284,7 +279,6 @@ def get_swing_locations(board_state, token):
                     continue
                 swing_locations.append(swing_tile)
     return list(set(swing_locations))
-
 
 # -------------------------------  board_state = copy.deepcopy(board_state)
 

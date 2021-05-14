@@ -171,7 +171,7 @@ def handle_collision(board_state, pos, player_tokens, opponent_tokens, player_ty
             if can_attack:
                 to_destroy.append(attacked_token)
 
-    for token in to_destroy:
+    for token in set(to_destroy):
         if token.type.isupper() == (player_type == "upper"):
             player_tokens.remove(token)
         else:
