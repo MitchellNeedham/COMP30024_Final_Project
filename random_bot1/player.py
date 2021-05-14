@@ -151,16 +151,20 @@ def update_board(player_action, opponent_action, player_tokens, opponent_tokens,
         board_state[opponent_action[1]].tokens.remove(token)
         board_state[opponent_action[2]].tokens.append(token)
 
-        board_state = handle_collision(board_state, player_action[2])
-        board_state = handle_collision(board_state, opponent_action[2])
+    print(player_tokens)
+
+    board_state, player_tokens, opponent_tokens = handle_collision(board_state, player_action[2], player_tokens,
+                                                                     opponent_tokens, player_type)
+    board_state, player_tokens, opponent_tokens = handle_collision(board_state, opponent_action[2], player_tokens,
+                                                                     opponent_tokens, player_type)
 
     return board_state, player_tokens, opponent_tokens
 
 
-def handle_collision(board_state, pos):
+def handle_collision(board_state, pos, player_tokens, opponent_tokens, player_type):
     tokens = board_state[pos].tokens
     if len(tokens) < 2:
-        return board_state
+        return board_state, player_tokens, opponent_tokens
 
     to_destroy = []
 
@@ -172,9 +176,14 @@ def handle_collision(board_state, pos):
                 break
 
     for token in to_destroy:
+        if token.type.isupper() == (player_type == "upper"):
+            player_tokens.remove(token)
+        else:
+            opponent_tokens.remove(token)
+
         board_state[pos].tokens.remove(token)
 
-    return board_state
+    return board_state, player_tokens, opponent_tokens
 
 
 def valid_path(r, q):
@@ -206,7 +215,7 @@ def get_available_moves(board_state, player_tokens, opponent_tokens, remaining_t
 def get_available_throws(board_state, remaining_tokens, player_type):
     if remaining_tokens <= 0:
         return []
-    
+
     available_throws = []
 
     if player_type == "upper":
@@ -225,14 +234,16 @@ def get_available_throws(board_state, remaining_tokens, player_type):
 
 def get_swing_locations(board_state, token):
     swing_locations = []
-    neighbours = filter(None, board_state[token.pos].neighbours)
-    for tile in neighbours:
+    neighbours = board_state[token.pos].neighbours
+    for tile in filter(None, neighbours):
         for neighbour_token in board_state[tile].tokens:
-            if neighbour_token.type.isupper() and token.type.isupper():
+            if neighbour_token.type.isupper() != token.type.isupper():
                 continue
-            if neighbour_token.type.islower() and token.type.islower():
-                continue
-            for swing_tile in board_state[neighbour_token.pos].neighbours:
+            swingable_tiles = list(
+                set(board_state[neighbour_token.pos].neighbours).difference(
+                    board_state[token.pos].neighbours + [token.pos]))
+            print(token.pos, swingable_tiles, board_state[token.pos].neighbours)
+            for swing_tile in swingable_tiles:
                 if swing_tile in neighbours or swing_tile == token.pos:
                     continue
                 swing_locations.append(swing_tile)

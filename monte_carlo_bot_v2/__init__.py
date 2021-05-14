@@ -1,1 +1,1 @@
-from random_bot2.player import Player
+from monte_carlo_bot_v2.player import Player
