@@ -1,0 +1,1 @@
+from AlphaZero.player import Player
