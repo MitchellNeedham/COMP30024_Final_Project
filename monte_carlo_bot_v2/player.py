@@ -240,8 +240,8 @@ def get_available_moves(board_state, player_tokens, opponent_tokens, remaining_t
 
         available_moves += map(lambda x: ("SLIDE",
                                           token.pos, x), safe_neighbours)
-        available_moves += map(lambda x: ("SWING",
-                                          token.pos, x), safe_swing_locations)
+        # available_moves += map(lambda x: ("SWING",
+        #                                   token.pos, x), safe_swing_locations)
 
     available_moves += get_available_throws(board_state,
                                             remaining_tokens, player_type)
@@ -321,7 +321,7 @@ def update_board_non_destructive(player_action, opponent_action, player_tokens, 
             # print(len(player_tokens))
 
         elif player_action[0] == "REMOVE":
-            tile_tokens = board_state[player_action[2]].tokens
+            tile_tokens = board_state[player_action[2]].tokens  
             token = list(filter(lambda t: t.type.isupper() ==
                                           (player_type == "upper"), tile_tokens))[0]
             if token in player_tokens:
@@ -330,21 +330,23 @@ def update_board_non_destructive(player_action, opponent_action, player_tokens, 
             # print(len(player_tokens))
 
         else:
-            # get token object to move
-            tile_tokens = board_state[player_action[1]].tokens
-            # print(len(tile_tokens))
-            # print('----------------------------------')
-            token = list(filter(lambda t: t.type.isupper() ==
-                                          (player_type == "upper"), tile_tokens))[0]
+            if len(board_state[player_action[1]].tokens) > 0:
+                # get token object to move
+                tile_tokens = board_state[player_action[1]].tokens
+                # print(len(tile_tokens))
+                # print('----------------------------------')
+                token = list(filter(lambda t: t.type.isupper() ==
+                                            (player_type == "upper"), tile_tokens))
+                if len(token) > 0:
+                    token = token[0]
+                # change token position
+                    token.update_position(player_action[2])
 
-            # change token position
-            token.update_position(player_action[2])
+                    # update board
+                    board_state[player_action[1]].tokens.remove(token)
+                    board_state[player_action[2]].tokens.append(token)
 
-            # update board
-            board_state[player_action[1]].tokens.remove(token)
-            board_state[player_action[2]].tokens.append(token)
-
-            player_token = token
+                    player_token = token
 
         if player_token:
             player_token = (player_token.type, player_token.pos)
@@ -380,18 +382,21 @@ def update_board_non_destructive(player_action, opponent_action, player_tokens, 
 
         else:
             # get token object to move
-            tile_tokens = board_state[opponent_action[1]].tokens
-            token = list(filter(lambda t: t.type.isupper() ==
-                                          (player_type != "upper"), tile_tokens))[0]
+            if len(board_state[opponent_action[1]].tokens) > 0:
+                tile_tokens = board_state[opponent_action[1]].tokens
+                token = list(filter(lambda t: t.type.isupper() ==
+                                            (player_type != "upper"), tile_tokens))
+                if len(token) > 0:
+                    token = token[0]
 
-            # change token position
-            token.update_position(opponent_action[2])
+                # change token position
+                    token.update_position(opponent_action[2])
 
-            # update board
-            board_state[opponent_action[1]].tokens.remove(token)
-            board_state[opponent_action[2]].tokens.append(token)
+                    # update board
+                    board_state[opponent_action[1]].tokens.remove(token)
+                    board_state[opponent_action[2]].tokens.append(token)
 
-            opponent_token = token
+                    opponent_token = token
 
         if opponent_token:
             opponent_token = (opponent_token.type, opponent_token.pos)
@@ -519,10 +524,10 @@ def mcts(player_tokens, opponent_tokens, board_state, player_remaining_tokens, o
 
     start_time = time.time()
     calls = 0
-    for i in range(10):
+    for i in range(3):
         #    print("hello")
 
-        # while time.time() - start_time < 0.7:
+    # while time.time() - start_time < 0.7:
         calls += 1
         player_tokens_new = copy.deepcopy(player_tokens)
         opponent_tokens_new = copy.deepcopy(opponent_tokens)
@@ -536,8 +541,8 @@ def mcts(player_tokens, opponent_tokens, board_state, player_remaining_tokens, o
                                                 player_type)
         # print('mcts_expansion_simulation: ', time.time() - s)
 
-        # if nodes_added == 0:
-        #    break
+        if nodes_added == 0:
+           break
 
     max_score = 0
     best_node = 0
@@ -546,7 +551,7 @@ def mcts(player_tokens, opponent_tokens, board_state, player_remaining_tokens, o
 
     for i in range(len(head['children'])):
         val = head['children'][i]['score']
-        print(i, head['children'][i]['explored'], "x ", val)
+        # print(i, head['children'][i]['explored'], "x ", val)
         probably_distribution.append(val)
 
     total = sum(probably_distribution)
@@ -590,7 +595,6 @@ def mcts_selection(node, player_tokens, opponent_tokens, board_state, player_typ
     opponent_action = node['opponent_action']
     update_board_non_destructive(player_action, opponent_action, player_tokens, opponent_tokens, board_state,
                                  player_type)
-
     UCB1 = []
 
     node['explored'] += 1
@@ -740,6 +744,10 @@ class OptimisationError(Exception):
 
 
 def score_move(player_token, opponent_token, board, player_type):
+
+    if player_token == None or opponent_token == None:
+        return 0
+
     token_list = {'R': [], 'P': [], 'S': [], 'r': [], 'p': [], 's': []}
 
     for pos, tile in board.items():
