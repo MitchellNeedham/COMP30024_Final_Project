@@ -227,7 +227,7 @@ def valid_path(r, q):
 def get_available_moves(board_state, player_tokens, opponent_tokens, remaining_tokens, player_type):
     available_moves = []
     collision_locations = map(lambda x: x.pos, opponent_tokens)
-    print(list(map(lambda x: x.pos, player_tokens)), player_type, hex(id(player_tokens)))
+    # print(list(map(lambda x: x.pos, player_tokens)), player_type, hex(id(player_tokens)))
 
     for token in player_tokens:
         neighbour_tiles = filter(None, board_state[token.pos].neighbours)
@@ -273,7 +273,7 @@ def get_swing_locations(board_state, token):
             swingable_tiles = list(
                 set(board_state[neighbour_token.pos].neighbours).difference(
                     board_state[token.pos].neighbours + [token.pos]))
-            print(token.pos, swingable_tiles, board_state[token.pos].neighbours)
+            # print(token.pos, swingable_tiles, board_state[token.pos].neighbours)
             for swing_tile in swingable_tiles:
                 if swing_tile in neighbours or swing_tile == token.pos:
                     continue
@@ -519,10 +519,10 @@ def mcts(player_tokens, opponent_tokens, board_state, player_remaining_tokens, o
 
     start_time = time.time()
     calls = 0
-    for i in range(3):
+    # for i in range(3):
         #    print("hello")
 
-    # while time.time() - start_time < 0.7:
+    while time.time() - start_time < 0.7:
         calls += 1
         player_tokens_new = copy.deepcopy(player_tokens)
         opponent_tokens_new = copy.deepcopy(opponent_tokens)
