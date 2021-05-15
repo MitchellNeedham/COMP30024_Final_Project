@@ -113,7 +113,6 @@ def update_board(player_action, opponent_action, player_tokens, opponent_tokens,
         token_type = player_action[1] if player_type == "lower" else player_action[1].upper()
         new_token = Token(token_type, player_action[2])
 
-        print(True, player_type, new_token.pos)
         player_tokens.append(new_token)
         # update game state
         board_state[player_action[2]].tokens.append(new_token)
@@ -134,7 +133,6 @@ def update_board(player_action, opponent_action, player_tokens, opponent_tokens,
         token_type = opponent_action[1] if player_type != "lower" else opponent_action[1].upper()
         new_token = Token(token_type, opponent_action[2])
 
-        print(False, player_type, new_token.pos)
         opponent_tokens.append(new_token)
         # update game state
         board_state[opponent_action[2]].tokens.append(new_token)
@@ -150,8 +148,6 @@ def update_board(player_action, opponent_action, player_tokens, opponent_tokens,
         # update board
         board_state[opponent_action[1]].tokens.remove(token)
         board_state[opponent_action[2]].tokens.append(token)
-
-    print(player_tokens)
 
     board_state, player_tokens, opponent_tokens = handle_collision(board_state, player_action[2], player_tokens,
                                                                      opponent_tokens, player_type)
@@ -194,7 +190,6 @@ def valid_path(r, q):
 def get_available_moves(board_state, player_tokens, opponent_tokens, remaining_tokens, player_type):
     available_moves = []
     collision_locations = map(lambda x: x.pos, opponent_tokens)
-    print(list(map(lambda x: x.pos, player_tokens)), player_type, hex(id(player_tokens)))
 
     for token in player_tokens:
         neighbour_tiles = filter(None, board_state[token.pos].neighbours)
@@ -241,7 +236,6 @@ def get_swing_locations(board_state, token):
             swingable_tiles = list(
                 set(board_state[neighbour_token.pos].neighbours).difference(
                     board_state[token.pos].neighbours + [token.pos]))
-            print(token.pos, swingable_tiles, board_state[token.pos].neighbours)
             for swing_tile in swingable_tiles:
                 if swing_tile in neighbours or swing_tile == token.pos:
                     continue
