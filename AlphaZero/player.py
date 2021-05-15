@@ -433,8 +433,9 @@ def get_payoff(player_available_moves, opponent_available_moves, player_tokens, 
                 player_available_moves[p_move], opponent_available_moves[o_move], player_tokens, opponent_tokens,
                 board_state, player_type)
 
-            mat[p_move][o_move] = score_move(player_move, opponent_move,
-                                             board_state_new, player_type, player_available_moves[p_move][0] == "THROW")
+            mat[p_move][o_move] = score_move(player_move, opponent_move, board_state_new, player_type,
+                                             player_available_moves[p_move][0] == "THROW",
+                                             opponent_available_moves[o_move])
 
             update_board_non_destructive(
                 player_available_moves[p_move], opponent_available_moves[o_move], player_tokens, opponent_tokens,
@@ -669,7 +670,7 @@ class OptimisationError(Exception):
     """For if the optimiser reports failure."""
 
 
-def score_move(player_token, opponent_token, board, player_type, throw):
+def score_move(player_token, opponent_token, board, player_type, throw, opponent_move):
     if player_token is None or opponent_token is None:
         return 0
 
@@ -694,7 +695,10 @@ def score_move(player_token, opponent_token, board, player_type, throw):
         if len(token_list[tta]) > 0:
             player_score += 1 / (hex_distance(token_pos, k) + 1)
             if hex_distance(token_pos, k) == 0 or token_pos == k:
-                return 1000
+                if opponent_move[2] != token_pos:
+                    return 1000
+                else:
+                    return 100
 
     for i in board[token_pos].tokens:
         if token_type.lower() == TOKEN_TO_ATTACK[i.type.lower()]:
