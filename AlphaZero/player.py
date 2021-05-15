@@ -681,26 +681,29 @@ def score_move(player_token, opponent_token, board, player_type):
     token_pos = player_token[1]
     tta = TOKEN_TO_ATTACK[token_type.lower()].upper() if player_type == 'lower' else TOKEN_TO_ATTACK[token_type.lower()]
     for k in token_list[tta]:
-        player_score += 1 / hex_distance(token_pos, k)
-
+        if len(token_list[tta]) > 0:
+            player_score += 1 / hex_distance(token_pos, k)
+            
     for i in board[token_pos].tokens:
         if token_type.lower() == TOKEN_TO_ATTACK[i.type.lower()]:
-            player_score -= reward_penitential
+            player_score -= reward_penitential*10
         if player_type == 'upper' and TOKEN_TO_ATTACK[token_type.lower()].upper() == i.type:
-            player_score -= reward_penitential
+            player_score -= reward_penitential*2
         elif player_type == 'lower' and TOKEN_TO_ATTACK[token_type.lower()] == i.type:
-            player_score -= reward_penitential
+            player_score -= reward_penitential*2
 
     token_type = opponent_token[0]
     token_pos = opponent_token[1]
     tta = TOKEN_TO_ATTACK[token_type.lower()].upper() if player_type == 'lower' else TOKEN_TO_ATTACK[token_type.lower()]
     for k in token_list[tta]:
-        opponent_score += 1 / hex_distance(token_pos, k)
+        if len(token_list[tta]) > 0:
+            opponent_score += 1 / hex_distance(token_pos, k)
+
     for i in board[token_pos].tokens:
         if token_type.lower() == TOKEN_TO_ATTACK[i.type.lower()]:
-            opponent_score -= reward_penitential
+            opponent_score -= reward_penitential*10
         if player_type == 'upper' and TOKEN_TO_ATTACK[token_type.lower()].upper() == i.type:
-            opponent_score -= reward_penitential
+            opponent_score -= reward_penitential*2
         elif player_type == 'lower' and TOKEN_TO_ATTACK[token_type.lower()] == i.type:
             opponent_score -= reward_penitential
 
